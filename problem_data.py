@@ -28,6 +28,7 @@ class Data:
             self.rides.append(ride)
 
 
+# Distance between a vehicle position (pair (x,y)) and a ride starting point (Object Ride)
 def dist_v(vehicle_pos, ride):
     return math.fabs(ride.a - vehicle_pos[0]) + math.fabs(ride.b - vehicle_pos[1])
 
