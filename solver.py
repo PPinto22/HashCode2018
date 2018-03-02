@@ -4,10 +4,11 @@ from problem_data import Data, dist_v
 
 # input_file = "a_example"
 # input_file = "b_should_be_easy"
-input_file = "c_no_hurry"
+# input_file = "c_no_hurry"
 # input_file = "d_metropolis"
 # input_file = "e_high_bonus"
 out_dir = "out/"
+
 
 class Solver:
     def __init__(self, file):
@@ -15,30 +16,45 @@ class Solver:
         self.vehicle_positions = dict()  # Map<Id, (x,y)>
         self.vehicle_availability = dict()  # Map<Id, int>
         self.vehicle_rides = dict()  # Map<Id, [Ride]>
+        # Flags to force the vehicles to move, regardless of whether the ride can be finished on time
+        self.vehicle_force = dict()  # Map<ID, Bool>
         for i in range(0, self.data.F):
-            self.vehicle_positions[i] = (0,0)
+            self.vehicle_positions[i] = (0, 0)
             self.vehicle_availability[i] = 0
             self.vehicle_rides[i] = list()
+            self.vehicle_force[i] = False
 
     def solve(self):
-        # faz coisas...
-        rides = set(self.data.rides)
+        # Rides stores the list of available rides at each moment, ordered by starting time
+        rides = list(sorted(self.data.rides, key=lambda r: (r.s, r.f)))
         for it in range(self.data.T):
             print(it)
             for v in range(self.data.F):
                 if self.vehicle_availability[v] != 0:
                     self.vehicle_availability[v] -= 1
                 else:
-                    ride = None
                     # Find best available ride
                     for r in rides:
-                        if it + dist_v(self.vehicle_positions[v], r) > r.s:
+                        # If ride finish is lower than current iteration, remove ride from available list and continue
+                        if r.f < it:
+                            rides.remove(r)
+                            continue
+                        # If force flag is true, take the ride regardless
+                        if self.vehicle_force[v]:
+                            ride = r
+                            break
+
+                        # If we can't finish the ride on time, try the next ride
+                        if r.f < it + dist_v(self.vehicle_positions[v], r) + r.p:
                             continue
                         else:
-                            if ride is None or r.p > ride.p:
-                                ride = r
-                    if ride is None:
+                            ride = r
+                            break
+                    else:
+                        # If we didn't find a valid ride
+                        self.vehicle_force[v] = True
                         continue
+                    force = False
                     rides.remove(ride)
                     self.vehicle_rides[v].append(ride)
                     self.vehicle_availability[v] = ride.p + dist_v(self.vehicle_positions[v], ride)
